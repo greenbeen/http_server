@@ -1,5 +1,7 @@
 import socket
 import sys
+import mimetypes
+import os.path
 
 
 def response_ok():
@@ -27,6 +29,31 @@ def parse_request(request):
         raise NotImplementedError("We only accept GET")
     print >>sys.stderr, 'request is okay'
     return uri
+
+
+def resolve_uri(uri):
+
+    # this should check if the path exists, if it doesn't, call response not found to return 404 error
+    if not os.path.exists(uri):
+        response_not_found()
+
+    file_name, extension = os.path.splitext(uri)
+
+    if os.path.isdir(uri):
+        return "" #this is where I'll return list if is a directory
+    if os.path.isfile(uri):
+        return "" #this can be where I return if uri points to a file (need else to raise error if none of these catch?)
+    content = ""
+    type = mimetypes.types_map[extension]
+    return (content, type)
+    
+
+def response_not_found():
+    """returns a 404 Method Not Allowed response"""
+    resp = []
+    resp.append("HTTP/1.1 404 Method Not Allowed")
+    resp.append("")
+    return "\r\n".join(resp)
 
 
 def server():
