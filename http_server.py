@@ -4,13 +4,13 @@ import mimetypes
 import os.path
 
 
-def response_ok():
+def response_ok(content, type):
     """returns a basic HTTP response"""
     resp = []
     resp.append("HTTP/1.1 200 OK")
-    resp.append("Content-Type: text/plain")
+    resp.append("Content-Type: {0}".format(type))
     resp.append("")
-    resp.append("this is a pretty minimal response")
+    resp.append(content) # can content be a file object, or does it have to be text?
     return "\r\n".join(resp)
 
 
@@ -32,26 +32,35 @@ def parse_request(request):
 
 
 def resolve_uri(uri):
+    """ returns content type and content """
+    path = os.path.abspath("webroot") + uri
+    #path = "/Users/krh/Desktop/Python200/projects/http_server/webroot" + uri
+    if os.path.exists(path):
+        if os.path.isfile(path):
+            with open(path, 'rb') as f:
+                content = f.read()
+            # content = open(path, 'rb').read()  #do I need to close the file with this method?
+            extension = os.path.splitext(path)[1]
+            type = mimetypes.types_map[extension]
+            return (content, type)
 
-    # this should check if the path exists, if it doesn't, call response not found to return 404 error
-    if not os.path.exists(uri):
-        response_not_found()
+        elif os.path.isdir(path):
+            directory = os.listdir(path)
+            content = "\n".join(directory)
+            type = "text/plain"
 
-    file_name, extension = os.path.splitext(uri)
+            return (content, type)
+       
+    else:
+        # raise ValueError # I think this might end the tests.py prematurely when this gets raised...
+        return ("", "") #not sure what to return if not found... error if use None
 
-    if os.path.isdir(uri):
-        return "" #this is where I'll return list if is a directory
-    if os.path.isfile(uri):
-        return "" #this can be where I return if uri points to a file (need else to raise error if none of these catch?)
-    content = ""
-    type = mimetypes.types_map[extension]
-    return (content, type)
     
 
 def response_not_found():
     """returns a 404 Method Not Allowed response"""
     resp = []
-    resp.append("HTTP/1.1 404 Method Not Allowed")
+    resp.append("HTTP/1.1 404 Not Found")
     resp.append("")
     return "\r\n".join(resp)
 
@@ -84,15 +93,15 @@ def server():
                 else:
                     # replace this line with the following once you have
                     # written resolve_uri
-                    response = response_ok()
-                    # content, type = resolve_uri(uri) # change this line
+                    #response = response_ok()
+                    content, type = resolve_uri(uri) # change this line
 
                     ## uncomment this try/except block once you have fixed
                     ## response_ok and added response_not_found
-                    # try:
-                    #     response = response_ok(content, type)
-                    # except NameError:
-                    #     response = response_not_found()
+                    try:
+                        response = response_ok(content, type)
+                    except NameError:
+                        response = response_not_found()
 
                 print >>sys.stderr, 'sending response'
                 conn.sendall(response)
