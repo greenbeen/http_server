@@ -4,13 +4,13 @@ import mimetypes
 import os.path
 
 
-def response_ok(content, type):
+def response_ok(body="", mimetype=""):
     """returns a basic HTTP response"""
     resp = []
     resp.append("HTTP/1.1 200 OK")
-    resp.append("Content-Type: {0}".format(type))
+    resp.append("Content-Type: {0}".format(mimetype))
     resp.append("")
-    resp.append(content) # can content be a file object, or does it have to be text?
+    resp.append(body) # can content be a file object, or does it have to be text?
     return "\r\n".join(resp)
 
 
@@ -52,8 +52,8 @@ def resolve_uri(uri):
             return (content, type)
        
     else:
-        # raise ValueError # I think this might end the tests.py prematurely when this gets raised...
-        return ("", "") #not sure what to return if not found... error if use None
+        raise ValueError # I think this might end the tests.py prematurely when this gets raised...
+        # return ("", "") #not sure what to return if not found... error if use None
 
     
 
@@ -94,14 +94,16 @@ def server():
                     # replace this line with the following once you have
                     # written resolve_uri
                     #response = response_ok()
-                    content, type = resolve_uri(uri) # change this line
+                    try:
+                        content, type = resolve_uri(uri) # change this line
+                    except ValueError:
+                        response = response_not_found()
 
                     ## uncomment this try/except block once you have fixed
                     ## response_ok and added response_not_found
-                    try:
+                    else:
                         response = response_ok(content, type)
-                    except NameError:
-                        response = response_not_found()
+                    
 
                 print >>sys.stderr, 'sending response'
                 conn.sendall(response)
